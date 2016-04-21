@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "noImplicitAny": true,
+    "outDir": "tmp",
+    "rootDir": ".",
+    "sourceMap": false
+  },
+  "files": [
+    "typings/main.d.ts",
+    "node_modules/rxjs/Rx.d.ts",
+    "src/my-typings/webmidi.d.ts",
+    "src/my-typings/cycle-core.d.ts",
+    "src/my-typings/cycle-dom.d.ts",
+    "src/app.ts",
+    "src/controller.ts",
+    "src/patch.ts",
+    "src/patch.ts",
+    "src/effect.ts",
+    "src/effects/sweep-down.ts",
+    "src/effects/note-sequencer.ts"
+  ]
+}
