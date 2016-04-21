@@ -1,8 +1,7 @@
 import {Observable, Subject} from 'rxjs';
 
 import {Effect} from '../effect'
-import {MidiCommand} from "../midi-driver";
-
+import {MidiCommand} from "../driver/midi-driver";
 
 export class SweepDown implements Effect {
   monoGroup: string
@@ -22,6 +21,4 @@ export class SweepDown implements Effect {
       {port, data: [0xB0, this.controlIndex, value]},
     ]);
   }
-
-
 }

@@ -1,7 +1,7 @@
 import {Observable, Subject} from 'rxjs';
 
 import {Effect} from '../effect'
-import {MidiCommand} from "../midi-driver";
+import {MidiCommand} from "../driver/midi-driver";
 
 
 export class NoteSequencer implements Effect {
@@ -17,6 +17,4 @@ export class NoteSequencer implements Effect {
       {port, data: [0x80, this.sequence[i], 0x40], delay: 100.0}
     ]).take(this.sequence.length);
   }
-
-
 }

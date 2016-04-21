@@ -1,4 +1,4 @@
-import {MidiCommand} from "./midi-driver";
+import {MidiCommand} from "./driver/midi-driver";
 import {Observable, Subject} from 'rxjs';
 
 

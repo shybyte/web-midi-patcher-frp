@@ -1,6 +1,4 @@
-import {Observable} from 'rxjs';
-import {Observer} from "rxjs/Observer";
-import {Subject} from "rxjs";
+import {Observable, Observer, Subject} from 'rxjs';
 
 import MIDIAccess = WebMidi.MIDIAccess;
 import MIDIInput = WebMidi.MIDIInput;
@@ -23,16 +21,6 @@ export interface MidiCommand {
 export interface MidiDriverAPI {
   portChange: Observable<MidiPortChange>
   midiMessage: Observable<MIDIMessageEvent>
-}
-
-export function createMidiAccessObservable(midiAccess: MIDIAccess) {
-  return Observable.create((observer: Observer<MIDIAccess>) => {
-    observer.next(midiAccess);
-    midiAccess.onstatechange = (event) => {
-      console.log(event);
-      observer.next(midiAccess);
-    };
-  });
 }
 
 

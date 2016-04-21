@@ -1,11 +1,12 @@
 import * as _ from 'lodash';
+import {Observable} from 'rxjs';
+import * as Cycle from '@cycle/core';
+import {div, makeDOMDriver, button} from '@cycle/dom';
 
-import {Observable, Subject, Subscription} from 'rxjs';
-
-import {createDriver, MidiCommand, MidiDriverAPI} from "./midi-driver";
-
-import {AppViewState} from './app-view-state';
 import {emulateObservable4, toNewObservable, switchGrouped} from './utils';
+import {createDriver, MidiCommand, MidiDriverAPI} from "./driver/midi-driver";
+import {localStorageDriver, LocalStorageDriverAPI} from './driver/local-storage-driver';
+import {AppViewState} from './app-view-state';
 
 import {Patch} from './patch';
 import zynPatch from './patches/zyn';
@@ -16,8 +17,6 @@ import MIDIInput = WebMidi.MIDIInput;
 import MIDIOutput = WebMidi.MIDIOutput;
 import MIDIMessageEvent = WebMidi.MIDIMessageEvent;
 
-import * as Cycle from '@cycle/core';
-import {div, makeDOMDriver, button} from '@cycle/dom';
 
 export function startController(midiAccess: MIDIAccess) {
   // const OUTPUT_MIDI_NAME = 'USB MIDI';
@@ -26,34 +25,33 @@ export function startController(midiAccess: MIDIAccess) {
   const PATCH_CHANGE_DEVICE_NAME = 'VMPK';
 
   const PROGRAM_CHANGE = 192;
+  const CURRENT_PATCH_STORAGE_KEY = 'currentPatch';
 
   const patches = [zynPatch, zynPatch2];
   const midiDriver = createDriver(midiAccess);
-  const START_VIEW_STATE = {
-    currentPatch: _.find(patches, {name: localStorage.getItem('currentPatch') || 'Polly'}),
-  };
+  const START_VIEW_STATE = {currentPatch: patches[0]};
 
-
+  
   function main(sources: any) {
     const midi: MidiDriverAPI = sources.Midi;
+    const storage: LocalStorageDriverAPI = sources.Storage;
 
+    const patchNameFromStorage$ = storage.getItem(CURRENT_PATCH_STORAGE_KEY, patches[0].name);
     const clickEvent$ = toNewObservable<Event>(sources.DOM.select('button').events('click') as any);
-    const clickedPatch$ = clickEvent$.map(ev => {
-      const button = ev.target as HTMLButtonElement;
-      return _.find(patches, {name: button.dataset['name']});
-    });
+    const clickedPatchName$ = clickEvent$.map(ev => (ev.target as HTMLButtonElement).dataset['name']);
+    const selectedPatch$ = patchNameFromStorage$.merge(clickedPatchName$).map(name => _.find(patches, {name}));
+    //const selectedPatch$ = clickedPatchName$.map(name => _.find(patches, {name}));
 
     const midiSelectedPatch$ = midi.midiMessage
       .filter(mm => _.includes(mm.target.name, PATCH_CHANGE_DEVICE_NAME) && mm.data[0] == PROGRAM_CHANGE)
       .map(mm => _.find(patches, {instrumentNumber: mm.data[1]}))
       .filter(_.isObject);
 
-    const viewState$ = clickedPatch$.merge(midiSelectedPatch$).scan((viewState: AppViewState, clickedPatch: Patch) => {
+    const viewState$ = selectedPatch$.merge(midiSelectedPatch$).scan((viewState: AppViewState, selectedPatch: Patch) => {
       const vs = _.clone(viewState);
-      vs.currentPatch = clickedPatch;
-      localStorage.setItem('currentPatch', clickedPatch.name);
+      vs.currentPatch = selectedPatch;
       return vs;
-    }, START_VIEW_STATE).startWith(START_VIEW_STATE);
+    }, START_VIEW_STATE);
 
     const output$ = midi.portChange.map(({midiAccess}) => {
       console.log('MIDI Access Object', midiAccess);
@@ -105,6 +103,9 @@ export function startController(midiAccess: MIDIAccess) {
       );
 
     return {
+      Storage: emulateObservable4(viewState$.map(
+        ({currentPatch}) => ({key: CURRENT_PATCH_STORAGE_KEY, value: currentPatch.name}))
+      ),
       Midi: emulateObservable4(midiCommand$),
       DOM: emulateObservable4(dom)
     };
@@ -112,6 +113,7 @@ export function startController(midiAccess: MIDIAccess) {
 
   Cycle.run(main, {
     Midi: midiDriver,
+    Storage: localStorageDriver,
     DOM: makeDOMDriver('#app')
   });
 }
